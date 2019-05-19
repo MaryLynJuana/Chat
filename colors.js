@@ -14,8 +14,8 @@ const COLORS = [
 const colorer = (s, color) => `\x1b[3${color}m${s}\x1b[0m`;
 
 const randomColorer = message => {
-	const color = Math.floor(Math.random() * (COLORS.length - 1));
-	return colorer(message, color)
+  const color = Math.floor(Math.random() * (COLORS.length - 1));
+  return (color === 1) ? randomColorer(message) : colorer(message, color);
 };
 
 module.exports = randomColorer;

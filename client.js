@@ -1,39 +1,68 @@
 'use strict';
 
 const net = require('net');
-const readline =require('readline');
+const readline = require('readline');
+const { mutableStream } = require('./tools');
+const { promisify } = require('util');
 
 const rl = readline.createInterface({
-	input: process.stdin,
-	output: process.stdout
+  input: process.stdin,
+  output: mutableStream(process.stdout),
 });
+
+rl.question[promisify.custom] = question => {
+  return new Promise((resolve) => {
+    rl.question(question, resolve);
+  });
+};
+
+const question = promisify(rl.question);
 
 const socket = new net.Socket();
 
-socket.on('connect', () => {
-  rl.question('Enter your username: ', username => {
-    if (username) socket.write(username);
-    rl.on('line', line => {
-	  socket.write(line)
-    })
-  })
-});
+const events = {
+  'connect': async () => await onConnect(),
+  'data': data => onData(data),
+  'error': err => onError(err),
+  'end': () => onEnd(),
+};
 
-socket.on('data', data => {
+const onConnect = async () => {
+  const username = await question('Enter your username: ');
+  if (!username) return onConnect();
+  socket.write(username);
+  rl.output.write('Enter your password: ');
+  rl.output.mute();
+  const password = await question('');
+  rl.output.unmute();
+  socket.write(password);
+  rl.on('line', line => socket.write(line));
+};
+
+const onData = data => {
   console.log('📨:', data.toString());
-});
+};
 
-socket.on('error', err => {
-	console.log('Socket error: ', err);
-	rl.close();
-	socket.end()
-});
+const onError = err => {
+  console.log('Socket error: ', err);
+  rl.close();
+  socket.end();
+};
 
-socket.on('end', () => {
-	console.log('Connection ended');
-	rl.close();
-	socket.end()
-});
+const onEnd =  () => {
+  console.log('Connection ended');
+  rl.close();
+  socket.end();
+};
+
+const addListeners = () => {
+  for (const event in events) {
+    const listener = events[ event ];
+    socket.on(event, listener);
+  }
+};
+
+addListeners();
 
 socket.connect({
   port: 2000,

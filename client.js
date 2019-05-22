@@ -1,22 +1,7 @@
 'use strict';
 
 const net = require('net');
-const readline = require('readline');
-const { mutableStream } = require('./tools');
-const { promisify } = require('util');
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: mutableStream(process.stdout),
-});
-
-rl.question[promisify.custom] = question => {
-  return new Promise((resolve) => {
-    rl.question(question, resolve);
-  });
-};
-
-const question = promisify(rl.question);
+const rl = require('./rl');
 
 const socket = new net.Socket();
 
@@ -28,13 +13,9 @@ const events = {
 };
 
 const onConnect = async () => {
-  const username = await question('Enter your username: ');
-  if (!username) return onConnect();
+  const username = await rl.getLogin();
   socket.write(username);
-  rl.output.write('Enter your password: ');
-  rl.output.mute();
-  const password = await question('');
-  rl.output.unmute();
+  const password = await rl.getPassword();
   socket.write(password);
   rl.on('line', line => socket.write(line));
 };

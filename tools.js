@@ -26,23 +26,4 @@ const curry = fn => {
   return curried;
 };
 
-const mutableStream = stream => {
-  const mutable = {
-    muted: false,
-    mute() {
-      this.muted = true;
-    },
-    unmute() {
-      this.muted = false;
-      stream.write('\n');
-    },
-    write(chunk, encoding, cb) {
-      if (this.muted) return;
-      stream.write(chunk, encoding, cb);
-    },
-  };
-  Object.setPrototypeOf(mutable, stream);
-  return mutable;
-};
-
-module.exports = { parseAddresses, findByField, getByValue, curry, mutableStream };
+module.exports = { parseAddresses, findByField, getByValue, curry };

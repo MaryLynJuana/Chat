@@ -1,11 +1,11 @@
 
 
-const parseAddresses = data => {
+const parseAddress = data => {
     const words = data.split(' ');
-    const usernames = words
+    const username = words
         .filter(word => word.startsWith('@'))
-        .map(word => word.substring(1));
-    return usernames;
+        .map(word => word.substring(1))[ 0 ];
+    return username;
 };
 
 const findByField = (arr, field, value) => {
@@ -28,4 +28,4 @@ const curry = fn => {
     return curried;
 };
 
-module.exports = { parseAddresses, findByField, getByValue, curry };
+module.exports = { parseAddress, findByField, getByValue, curry };

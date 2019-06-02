@@ -4,7 +4,7 @@ const net = require('net');
 const rl = require('./rl');
 const MessageQueue = require('./queue');
 const { createMsg } = MessageQueue;
-const { parseAddresses } = require('./tools');
+const { parseAddress } = require('./tools');
 
 const socket = new net.Socket();
 
@@ -12,20 +12,20 @@ const queue = new MessageQueue();
 
 const operations = {
     '/dialogue': async data => {
-        const address = parseAddresses(data)[ 0 ];
+        const address = parseAddress(data);
         if (address) await queue.startDialogue(address);
     },
     '/leave': () => queue.leaveDialogue(),
-    '/viewUnread': async (data) => {
-        const address = parseAddresses(data)[ 0 ];
+    '/viewUnread': async data => {
+        const address = parseAddress(data);
         if (address) await queue.showOldCache(address);
     },
 };
 
-const executeCommand = async (data, login) => {
+const executeCommand = async data => {
     const command = data.substring(0, data.indexOf(' ')) || data;
     const operation = operations[ command ];
-    if (operation) return await operation(data, login);
+    if (operation) return await operation(data);
 };
 
 
@@ -34,9 +34,8 @@ const onConnect = async() => {
     socket.write(login);
     const password = await rl.getPassword();
     socket.write(password);
-    queue.initialize(login);
     rl.on('line', async line => {
-        if (line.startsWith('/')) return await executeCommand(line, login);
+        if (line.startsWith('/')) return await executeCommand(line);
         const message = createMsg(login, queue.colocutor, line);
         return socket.write(message);
     });
@@ -50,11 +49,22 @@ const onError = err => {
     socket.end();
 };
 
-const onEnd = async() => {
+const saveCache = () => {
+    for (const address in queue.waiting) {
+        const cache = queue.waiting[ address ];
+        for (const msg of cache) socket.write(JSON.stringify(msg));
+    }
+};
+
+rl.on('SIGINT', () => {
+    saveCache();
+    rl.close();
+    process.exit(0);
+});
+
+const onEnd = () => {
     console.log('Connection ended');
     rl.close();
-    socket.end();
-    return await queue.saveCache();
 };
 
 const events = {

@@ -1,8 +1,9 @@
-'use strict';
+
 
 const net = require('tls');
 const rl = require('./rl');
 const fs = require('fs');
+const randomColorer = require('./colors');
 const MessageQueue = require('./queue');
 const { createMsg } = MessageQueue;
 const { parseAddress } = require('./tools');
@@ -14,7 +15,7 @@ const options = {
 
 const socket = net.connect(2000, options);
 
-const queue = new MessageQueue();
+const queue = new MessageQueue(socket);
 
 const operations = {
   '/dialogue': async data => {
@@ -22,10 +23,6 @@ const operations = {
     if (address) await queue.startDialogue(address);
   },
   '/leave': () => queue.leaveDialogue(),
-  '/viewUnread': async data => {
-    const address = parseAddress(data);
-    if (address) await queue.showOldCache(address);
-  },
 };
 
 const executeCommand = async data => {
@@ -34,17 +31,20 @@ const executeCommand = async data => {
   if (operation) return await operation(data);
 };
 
+const processLine = async (line, login) => {
+  const username = randomColorer(login);
+  if (line.startsWith('/')) return await executeCommand(line);
+  const text = username + ' ' + line;
+  const message = createMsg(login, queue.colocutor, text);
+  return socket.write(message);
+};
 
 const onConnect = async () => {
   const login = await rl.getLogin();
-  socket.write(login);
   const password = await rl.getPassword();
-  socket.write(password);
-  rl.on('line', async line => {
-    if (line.startsWith('/')) return await executeCommand(line);
-    const message = createMsg(login, queue.colocutor, line);
-    return socket.write(message);
-  });
+  socket.write(JSON.stringify({ type: 'login', login, password }));
+  queue.initialize(login);
+  rl.on('line', async line => processLine(line, login));
 };
 
 const onData = data => queue.add(data.toString());

@@ -1,10 +1,15 @@
-'use strict';
+
 
 
 module.exports = class MessageQueue {
-  constructor() {
+  constructor(socket) {
     this.colocutor = 'everybody';
+    this.socket = socket;
     this.waiting = {};
+  }
+
+  initialize(login) {
+    this.user = login;
   }
 
   async startDialogue(address) {
@@ -13,7 +18,7 @@ module.exports = class MessageQueue {
     if (!cache) return;
     cache.forEach((msg, index) => {
       this.show(msg);
-      this.waiting[ address ][ index ] = msg;
+      delete this.waiting[ address ][ index ];
     });
   }
 
@@ -27,13 +32,20 @@ module.exports = class MessageQueue {
     return publicMsg && inPublicChat;
   }
 
+  inPrivate(sender, receiver) {
+    const fromColocutor = sender === this.colocutor;
+    const toMe = receiver === this.user;
+    return fromColocutor && toMe;
+  }
+
   toCache(message) {
     const { sender } = message;
     this.waiting[ sender ] = this.waiting[ sender ] || [];
     this.waiting[ sender ].push(message);
   }
 
-  notify(sender) {
+  notify(sender, receiver) {
+    if (receiver === 'everybody') return;
     const newMsgWarn = `${sender} has sent you a private message.
 Type '/dialogue @${sender}' to check it`;
     console.log('📨: ', newMsgWarn);
@@ -45,14 +57,17 @@ Type '/dialogue @${sender}' to check it`;
     message.sent = true;
     const { sender, receiver } = message;
     const inPublic = this.inPublic(receiver);
-    const fromCurrentChat = sender === this.colocutor || inPublic;
-    fromCurrentChat ? await this.show(message) : this.notify(sender);
-    if (receiver !== 'everybody') return this.toCache(message);
+    const inPrivate = this.inPrivate(sender, receiver);
+    const fromCurrentChat = inPrivate || inPublic;
+    if (fromCurrentChat) return await this.show(message);
+    this.notify(sender, receiver);
+    if (receiver !== 'everybody') this.toCache(message);
   }
 
   async show(message) {
     console.log('📨: ', message.text, message.date);
     message.read = true;
+    this.socket.write(JSON.stringify(message));
   }
 
   static createMsg(sender, receiver, text) {
@@ -60,6 +75,7 @@ Type '/dialogue @${sender}' to check it`;
       sender, receiver, text,
       date: new Date().toLocaleString(),
       read: false,
+      type: 'message',
     };
     return JSON.stringify(msg);
   }

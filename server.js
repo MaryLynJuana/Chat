@@ -1,10 +1,8 @@
-'use strict';
 
 
 const net = require('tls');
 const fs = require('fs');
 const { getByValue, curry } = require('./tools');
-const randomColor = require('./colors');
 const DatabaseInterface = require('./mongo');
 const db = new DatabaseInterface('chat');
 
@@ -37,11 +35,9 @@ const sendMessage = async message => {
   client.write(JSON.stringify(message));
 };
 
-const processMessage = curry(async (socket, data) => {
-  const message = JSON.parse(data.toString());
-  const { text, receiver } = message;
+const processMessage = curry(async (socket, message) => {
+  const { receiver } = message;
   if (receiver !== 'everybody') await save(message);
-  message.text = socket.username + ' ' + text;
   receiver === 'everybody' ?
     writeToAll(JSON.stringify(message), socket) :
     await sendMessage(message);
@@ -64,37 +60,44 @@ const resendUnread = async (receiver, socket) => {
 };
 
 const enterChatRoom = async (login, socket) => {
-  socket.username = randomColor(login);
   clients.set(`${login}`, socket);
-  socket.write(`Hello from server, ${socket.username} !`);
-  writeToAll(`User connected: ${socket.username}`, socket);
-  socket.on('data', processMessage(socket));
+  socket.write(`Hello from server, ${login} !`);
+  writeToAll(`User connected: ${login}`, socket);
   await resendUnread(login, socket);
 };
 
-const logIn = curry(async (socket, loginBuffer) => {
-  const login = loginBuffer.toString();
+const logIn = curry(async (socket, data) => {
+  const { login, password } = data;
   const users = await db.chooseCollection('users');
   const user = await users.getItem({ 'name': login });
-  socket.once('data', async passwdBuffer => {
-    const password = passwdBuffer.toString();
-    const access = user ?
-      signIn(user, password) : signUp(login, password);
-    access ? await enterChatRoom(login, socket) :
-      socket.end('Failed  to access');
-  });
+  const access = user ?
+    signIn(user, password) : signUp(login, password);
+  access ? await enterChatRoom(login, socket) :
+    socket.end('Failed  to access');
 });
 
 const leaveChatRoom = socket => {
   const address = getByValue(clients, socket);
   if (!address) return;
   clients.delete(address);
-  writeToAll(`User disconnected: ${socket.username}`);
+  writeToAll(`User disconnected: ${address}`);
 };
+
+const processors = {
+  login: logIn,
+  message: processMessage,
+};
+
+const onData = curry((socket, data) => {
+  const message = JSON.parse(data);
+  const { type } = message;
+  const processor = processors[ type ];
+  return processor(socket, message);
+});
 
 const onConnection = socket => {
   socket.setNoDelay(true);
-  socket.once('data', logIn(socket));
+  socket.on('data', onData(socket));
   socket.on('error', err => {
     console.log('Socket error: ', err);
   });

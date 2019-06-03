@@ -1,11 +1,17 @@
 'use strict';
 
 
-const net = require('net');
+const net = require('tls');
+const fs = require('fs');
 const { getByValue, curry } = require('./tools');
 const randomColor = require('./colors');
 const DatabaseInterface = require('./mongo');
 const db = new DatabaseInterface('chat');
+
+const options = {
+  key: fs.readFileSync('./cert/server-key.pem'),
+  cert: fs.readFileSync('./cert/server-cert.pem')
+};
 
 const clients = new Map();
 
@@ -94,7 +100,7 @@ const onConnection = socket => {
   });
   socket.on('end', () => leaveChatRoom(socket));
 };
-const server = net.createServer(onConnection);
+const server = net.createServer(options, onConnection);
 
 server.on('error', err => {
   console.log('Server error: ', err);

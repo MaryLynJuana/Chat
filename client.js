@@ -1,12 +1,18 @@
 'use strict';
 
-const net = require('net');
+const net = require('tls');
 const rl = require('./rl');
+const fs = require('fs');
 const MessageQueue = require('./queue');
 const { createMsg } = MessageQueue;
 const { parseAddress } = require('./tools');
 
-const socket = new net.Socket();
+
+const options = {
+  ca: [ fs.readFileSync('./cert/server-cert.pem') ]
+};
+
+const socket = net.connect(2000, options);
 
 const queue = new MessageQueue();
 
@@ -83,7 +89,3 @@ const addListeners = () => {
 
 addListeners();
 
-socket.connect({
-  port: 2000,
-  host: '127.0.0.1',
-});

@@ -1,21 +1,26 @@
 {
   "name": "chat",
   "version": "1.0.0",
-  "description": "",
+  "author": "MaryLynJuana<mary_juana@ukr.net>",
+  "description": "TLS-socket based client-server console chat application",
   "main": "client.js",
+  "license": "MIT",
+  "readmeFilename": "README.md",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "author": "",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaryLynJuana/Chat"
+  },
+  "dependencies": {
+    "bcrypt": "^3.0.6",
+    "mongodb": "^3.2.6"
+  },
   "devDependencies": {
     "eslint": "^5.16.0",
     "eslint-config-metarhia": "^7.0.0",
     "eslint-plugin-import": "^2.17.2"
   },
-  "dependencies": {
-    "bcrypt": "^3.0.6",
-    "mongodb": "^3.2.6"
-  }
 }

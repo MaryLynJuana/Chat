@@ -1,6 +1,5 @@
 'use strict';
 
-
 const { MongoClient, ObjectId } = require('mongodb');
 
 module.exports = class DatabaseInterface {

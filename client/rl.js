@@ -1,6 +1,5 @@
 'use strict';
 
-
 const readline = require('readline');
 const { promisify } = require('util');
 

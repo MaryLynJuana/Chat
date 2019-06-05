@@ -40,10 +40,6 @@
       "error",
       "always"
     ],
-    "strict": [
-      "error",
-      "global"
-    ],
     "brace-style": [
       "error",
       "1tbs",

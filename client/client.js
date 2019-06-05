@@ -1,15 +1,15 @@
 'use strict';
 
 const tls = require('tls');
-const rl = require('./client/rl');
+const rl = require('./rl');
 const fs = require('fs');
-const MessageQueue = require('./client/queue');
+const MessageQueue = require('./queue');
 const { createMsg } = MessageQueue;
-const { parseAddress, randomColorer } = require('./lib');
+const { parseAddress, randomColorer } = require('../lib');
 
 
 const options = {
-  ca: [ fs.readFileSync('./cert/server-cert.pem') ]
+  ca: [ fs.readFileSync('../cert/server-cert.pem') ]
 };
 
 const socket = tls.connect(8000, options);

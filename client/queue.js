@@ -1,5 +1,6 @@
+'use strict';
 
-
+const { colorer } = require('../lib');
 
 module.exports = class MessageQueue {
   constructor(socket) {
@@ -16,9 +17,9 @@ module.exports = class MessageQueue {
     this.colocutor = address;
     const cache = this.waiting[ address ];
     if (!cache) return;
-    cache.forEach((msg, index) => {
+    cache.forEach(msg => {
       this.show(msg);
-      delete this.waiting[ address ][ index ];
+      this.waiting[ address ].unshift();
     });
   }
 
@@ -51,9 +52,20 @@ Type '/dialogue @${sender}' to check it`;
     console.log('📨: ', newMsgWarn);
   }
 
+  async show(message) {
+    console.log('📨: ', message.text, message.date);
+    message.read = true;
+    this.socket.write(JSON.stringify(message));
+  }
+
+  warn(message) {
+    const warning = colorer(message.text, 3);
+    console.log(warning);
+  }
+
   async add(data) {
-    if (!data.startsWith('{')) return console.log(data);
     const message = JSON.parse(data);
+    if (message.type === 'warning') return this.warn(message);
     message.sent = true;
     const { sender, receiver } = message;
     const inPublic = this.inPublic(receiver);
@@ -62,12 +74,6 @@ Type '/dialogue @${sender}' to check it`;
     if (fromCurrentChat) return await this.show(message);
     this.notify(sender, receiver);
     if (receiver !== 'everybody') this.toCache(message);
-  }
-
-  async show(message) {
-    console.log('📨: ', message.text, message.date);
-    message.read = true;
-    this.socket.write(JSON.stringify(message));
   }
 
   static createMsg(sender, receiver, text) {

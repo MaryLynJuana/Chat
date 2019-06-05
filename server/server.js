@@ -2,13 +2,13 @@
 
 const tls = require('tls');
 const fs = require('fs');
-const { findByField, getByValue, curry } = require('./lib');
-const db = require('./server/database');
-const User = require('./server/user');
+const { findByField, getByValue, curry } = require('../lib');
+const db = require('./database');
+const User = require('./user');
 
 const options = {
-  key: fs.readFileSync('./cert/server-key.pem'),
-  cert: fs.readFileSync('./cert/server-cert.pem')
+  key: fs.readFileSync('../cert/server-key.pem'),
+  cert: fs.readFileSync('../cert/server-cert.pem')
 };
 
 const clients = new Map();

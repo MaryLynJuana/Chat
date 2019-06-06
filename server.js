@@ -33,9 +33,8 @@ const processMessage = async (socket, message) => {
   const client = clients.get(receiver);
   const sender = findByField(clients, 'socket', socket);
   if (!sender) return disconnect(socket);
-  return (receiver === 'everybody' && !sent) ?
-    writeToAll(message, sender) :
-    await sender.sendMessage(message, client);
+  if (receiver === 'everybody' && !sent) writeToAll(message, sender);
+  else await sender.sendMessage(message, client);
 };
 
 const signIn = (user, password) => password === user.password;
@@ -60,7 +59,6 @@ const enterChatRoom = async (login, socket) => {
   const hello = warn(`Hello from server, ${login} !`);
   socket.write(JSON.stringify(hello));
   writeToAll(warn(`User connected: ${login}`), client);
-  await resendUnread(login, socket);
 };
 
 const logIn = curry(async (socket, data) => {
@@ -69,8 +67,11 @@ const logIn = curry(async (socket, data) => {
   const user = await users.getItem({ 'name': login });
   const access = user ?
     signIn(user, password) : signUp(login, password);
-  access ? await enterChatRoom(login, socket) :
-    disconnect(socket);
+  if (access) {
+   await enterChatRoom(login, socket);
+   await resendUnread(login, socket);
+  } else disconnect(socket);
+
 });
 
 const leaveChatRoom = socket => {

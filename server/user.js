@@ -24,12 +24,4 @@ module.exports = class User {
     client.write(JSON.stringify(message));
   }
 
-  async resendUnread() {
-    const messages = await this.db.chooseCollection('messages');
-    const unread = await messages.findAll({
-      receiver: this.login,
-      read: false,
-    });
-    unread.forEach(msg => this.socket.write(JSON.stringify(msg)));
-  }
 };

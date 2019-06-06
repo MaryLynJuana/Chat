@@ -48,13 +48,19 @@ const signUp = async (name, password) => {
   return true;
 };
 
+const resendUnread = async (receiver, socket) => {
+  const messages = await db.chooseCollection('messages');
+  const unread = await messages.findAll({ receiver, read: false });
+  unread.forEach(msg => socket.write(msg));
+}
+
 const enterChatRoom = async (login, socket) => {
   const client = new User(login, socket, db);
   clients.set(login, client);
   const hello = warn(`Hello from server, ${login} !`);
   socket.write(JSON.stringify(hello));
   writeToAll(warn(`User connected: ${login}`), client);
-  await client.resendUnread();
+  await resendUnread(login, socket);
 };
 
 const logIn = curry(async (socket, data) => {
